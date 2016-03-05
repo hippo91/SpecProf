@@ -10,11 +10,12 @@
 #endif
 
 #include <dlfcn.h>
-
+{% if opt_includes is not none %}
 // Optional includes
 {% for include in opt_includes %}
 #include "{{ include }}"
 {% endfor %}
+{% endif %}
 
 // Function prototype
 {{ func_signature }}
@@ -24,8 +25,7 @@
   // Define the target symbol
   static const char *target_symbol = "{{ target_symbol }}";
   // Define the specific pointer to function type
-  typedef void (*func_ptr)(MieGruneisenParameters_t *params, const double specific_volume, const double internal_energy,
-               double* pressure, double* gamma_per_vol, double* c_son);
+  typedef void (*func_ptr)({{ func_params }});
   static func_ptr orig_func = NULL;
   static long int call_count = 0;  // we count the total number of calls
   static double total_cpu_time_used = 0.;  // we measure the cpu time used by the function
@@ -61,7 +61,7 @@
   call_count += 1;
   start = clock();
   gettimeofday(&start_r, NULL);
-  (*orig_func)(params, specific_volume, internal_energy, pressure, gamma_per_vol, c_son);
+  (*orig_func)({{ func_params_names }});
   gettimeofday(&end_r, NULL);
   total_real_time_used += ((double) (end_r.tv_sec - start_r.tv_sec)) * 1e+06 + ((double) (end_r.tv_usec - start_r.tv_usec));
   total_cpu_time_used += ((double) (clock() - start)) / CLOCKS_PER_SEC;
