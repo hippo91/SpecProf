@@ -73,10 +73,11 @@ class SharedObjectAnalyser(object):
         :type func_name: str 
         """
         potential_targets = [symb for symb in self._symbols if symb.find(func_name) != -1]
-        targets = raw_input("""Among all the following symbols which are of interests?"""
+        target = raw_input("""Among all the following symbols which one is of interests?"""
                             """{:s}{:s}{:s}""".format(os.linesep, ":".join(potential_targets), os.linesep))
-        targets = targets.split()
-        return targets
+        if len(target.split()) != 1:
+            raise ValueError("Please select only one symbol!")
+        return target
         
         
 if __name__ == "__main__":
