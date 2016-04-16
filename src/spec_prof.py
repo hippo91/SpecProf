@@ -1,7 +1,8 @@
-#!/usr/local/bin/python2.7
+#!/usr/bin/env python2.7
 # -*- coding: iso-8859-1 -*-
-'''
-src.spec_prof generates a shared object that count call and measure execution time of a function defined inside another shared object
+"""
+src.spec_prof generates a shared object that count call and measure execution time of a function defined inside
+another shared object
 
 @author:     guillaume Peillex
 
@@ -11,7 +12,7 @@ src.spec_prof generates a shared object that count call and measure execution ti
 
 @contact:    guillaume.peillex@gmail.com
 @deffield    updated: Updated
-'''
+"""
 
 import sys
 import os
@@ -28,22 +29,24 @@ __updated__ = '2016-03-06'
 
 DEBUG = 1
 
+
 class CLIError(Exception):
-    '''Generic exception to raise and log different fatal errors.'''
+    """Generic exception to raise and log different fatal errors."""
     def __init__(self, msg):
         super(CLIError).__init__(type(self))
         self.msg = "E: %s" % msg
+
     def __str__(self):
         return self.msg
+
     def __unicode__(self):
         return self.msg
 
-def main(argv=None): # IGNORE:C0111
-    '''Command line options.'''
 
-    if argv is None:
-        argv = sys.argv
-    else:
+def main(argv=None):  # IGNORE:C0111
+    """Command line options."""
+
+    if argv is not None:
         sys.argv.extend(argv)
 
     program_name = os.path.basename(sys.argv[0])
@@ -78,7 +81,7 @@ USAGE
                             help="signature of the function to measure")
         parser.add_argument('-w', '--path-to-working-dir', dest="wdir", metavar="PATH_TO_WORKING_DIR",
                             help="path to a directory where source file and shared object will be generated")
-        parser.add_argument('-i', '--optional_includes', dest="opt_inc", metavar="OPTIONAL_HEADERS", 
+        parser.add_argument('-i', '--optional_includes', dest="opt_inc", metavar="OPTIONAL_HEADERS",
                             help="optional headers to include in the generated src file")
         # Process arguments
         args = parser.parse_args()
@@ -92,19 +95,19 @@ USAGE
         if verbose > 0:
             print("Verbose mode on")
 
-        _, function_name, _ = function_wrapper_writer.splitFunctionPrototype(function_signature)
-        target_symbol = shared_library_analysis.SharedObjectAnalyser(origin_library).askForSymbol(function_name)
+        _, function_name, _ = function_wrapper_writer.split_function_prototype(function_signature)
+        target_symbol = shared_library_analysis.SharedObjectAnalyser(origin_library).ask_for_symbol(function_name)
         wrapper_writer = function_wrapper_writer.FunctionWrapperWriter(origin_library, working_dir)
-        wrapper_writer.writeCFile(target_symbol, function_signature, optional_includes)
-        wrapper_writer.compileSrcFile()
-        
+        wrapper_writer.write_c_file(target_symbol, function_signature, optional_includes)
+        wrapper_writer.compile_src_file()
+
         return 0
     except KeyboardInterrupt:
-        ### handle keyboard interrupt ###
+        # handle keyboard interrupt #
         return 0
     except Exception, e:
         if DEBUG:
-            raise(e)
+            raise e
         indent = len(program_name) * " "
         sys.stderr.write(program_name + ": " + repr(e) + "\n")
         sys.stderr.write(indent + "  for help use --help")

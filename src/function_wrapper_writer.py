@@ -1,7 +1,9 @@
 # -*- coding: iso-8859-1 -*-
-'''
+from __future__ import print_function
+
+"""
 A module implementing the FunctionWrapperWriter class
-'''
+"""
 import logging
 import subprocess
 import os
@@ -20,6 +22,7 @@ FUNC_PARAMETER_PATTERN = "\s*(?:const)?\s*\w+\s*\**\s*(\w+)"
 FUNC_PROTO_PO = re.compile(FUNC_PROTO_PATTERN)
 FUNC_PARAMETER_PO = re.compile(FUNC_PARAMETER_PATTERN)
 
+
 class FunctionWrapperWriter(object):
     """
     A class that creates a c or c++ file that wrapps the call to a specific function inside a shared object
@@ -34,9 +37,9 @@ class FunctionWrapperWriter(object):
         :type language: str ('c'|'cpp'|'c++')
         """
         self._target_library = target_library
-        if not language in ['c', 'cpp', 'c++']:
+        if language not in ['c', 'cpp', 'c++']:
             raise ValueError("Available languages are C ('c') or C++ ('cpp'|'c++')")
-        if (os.path.isdir(path_to_working_dir)):
+        if os.path.isdir(path_to_working_dir):
             self._path_to_working_dir = path_to_working_dir
         else:
             raise IOError("The path {:s} is not a directory!".format(path_to_working_dir))
@@ -47,9 +50,8 @@ class FunctionWrapperWriter(object):
         elif self._language in ['cpp', 'c++']:
             self._src_filename = os.path.splitext(os.path.basename(self._target_library))[0] + "_wrapper.cpp"
         self._src_filepath = os.path.join(self._path_to_working_dir, self._src_filename)
-        
-    
-    def writeCFile(self, function_symbol, function_signature, opt_includes = None):
+
+    def write_c_file(self, function_symbol, function_signature, opt_includes=None):
         """
         Write c file wrapper using jinja and template
         
@@ -60,11 +62,9 @@ class FunctionWrapperWriter(object):
         :param opt_includes: optional includes
         :type opt_includes: list
         """
-        if opt_includes is not None:
-            opt_includes = [opt_includes]
         template = JINJA_ENVIRONMENT.get_template('template_cfile.c')
-        func_params = splitFunctionPrototype(target_signature)[2]
-        func_params_names = getFunctionParametersNames(func_params)
+        func_params = split_function_prototype(target_signature)[2]
+        func_params_names = get_function_parameters_names(func_params)
         template_values = {'opt_includes': opt_includes,
                            'func_signature': function_signature,
                            'target_library': self._target_library,
@@ -74,7 +74,7 @@ class FunctionWrapperWriter(object):
         with open(self._src_filepath, 'w') as fo:
             fo.write(template.render(template_values))
             
-    def compileSrcFile(self):
+    def compile_src_file(self):
         """
         Compile the src file into a shared object that will wrap the call to the function
         of the original library
@@ -87,24 +87,24 @@ class FunctionWrapperWriter(object):
             cmd = "g++ -D_GNU_SOURCE  -g -Wall -shared -fPIC -ldl {:s} -o {:s}".format(self._src_filename,
                                                                                        shared_object_name)
         saved_dir = os.getcwd()
-        os.chdir(self._path_to_working_dir);
+        os.chdir(self._path_to_working_dir)
         try:
-            print >> stderr, "Launching command :\n{:s}".format(cmd)
+            print("Launching command :\n{:s}".format(cmd), file=stderr)
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as sub_error:
-            print >> stderr, "Problem encountered when executing command : {:s}".format(cmd)
-            print >> stderr, "Return code : {:d}".format(sub_error.returncode)
-            print >> stderr, "Available output : {:s}".format(sub_error.output)
+            print("Problem encountered when executing command : {:s}".format(cmd), file=stderr)
+            print("Return code : {:d}".format(sub_error.returncode), file=stderr)
+            print("Available output : {:s}".format(sub_error.output), file=stderr)
         finally:
             os.chdir(saved_dir)
-        print "Compilation terminated successfully"
-        print "To launch your program with the wrapper library intercepting original one type :"
+        print("Compilation terminated successfully")
+        print("To launch your program with the wrapper library intercepting original one type :")
         ld_preload = os.path.join(self._path_to_working_dir, shared_object_name)
-        print "LD_PRELOAD={:s} /path/to/your/program".format(ld_preload)
-        print "Bye!"
+        print("LD_PRELOAD={:s} /path/to/your/program".format(ld_preload))
+        print("Bye!")
 
 
-def splitFunctionPrototype(func_prototype):
+def split_function_prototype(func_prototype):
     """
     Return a tuple made of the :
         - return type of the function,
@@ -118,13 +118,13 @@ def splitFunctionPrototype(func_prototype):
     :rtype: tuple
     """
     results = re.search(FUNC_PROTO_PO, func_prototype).groups()
-    return (results)
+    return results
         
         
-def getFunctionParametersNames(func_parameters):
+def get_function_parameters_names(func_parameters):
     """
     :param func_parameters: parameters of the function as return by the method _getParameters
-    :type func_parmaters: str
+    :type func_parameters: str
     :return: name of the parameters of the function
     :rtype: list
     """
@@ -136,9 +136,10 @@ if __name__ == "__main__":
                         """ const double internal_energy, double* pressure, double* gamma_per_vol, double* c_son)""")
     my_func_wrap = FunctionWrapperWriter("""/home/guillaume2/Documents/Informatique/WORKSPACE_ECLIPSE/XVOF_NP/xvof/"""
                                          """element/vnr_internal_energy_evolution.so""", "/tmp/test")
-    my_func_wrap.writeCFile(function_symbol="solveVolumeEnergy",
-                            function_signature="""void solveVolumeEnergy(MieGruneisenParameters_t *params, const double specific_volume,"""
-                                               """ const double internal_energy, double* pressure, double* gamma_per_vol, double* c_son)""",
-                            opt_includes="""/home/guillaume2/Documents/Informatique/WORKSPACE_ECLIPSE/"""
-                        """nonlinear_solver/Newton/miegruneisen.h""")
-    my_func_wrap.compileSrcFile()
+    my_func_wrap.write_c_file(
+        function_symbol="solveVolumeEnergy",
+        function_signature="""void solveVolumeEnergy(MieGruneisenParameters_t *params, const double specific_volume,"""
+                           """ const double internal_energy, double* pressure, double* gamma_per_vol, double* c_son)""",
+        opt_includes=["""/home/guillaume2/Documents/Informatique/WORKSPACE_ECLIPSE/"""
+                      """nonlinear_solver/Newton/miegruneisen.h"""])
+    my_func_wrap.compile_src_file()

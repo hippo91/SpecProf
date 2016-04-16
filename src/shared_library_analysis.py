@@ -1,12 +1,13 @@
 # -*- coding: iso-8859-1 -*-
-'''
+"""
 A module implementing the SharedObjectAnalyser class
-'''
+"""
 import os
 import logging
 import subprocess
 
 logger = logging.getLogger(__name__)
+
 
 class SharedObjectAnalyser(object):
     """
@@ -17,11 +18,11 @@ class SharedObjectAnalyser(object):
         :param path_to_so: path to the shared object
         :type path_to_so: str
         """
-        self._path_to_so = self._checkPath(os.path.expanduser(path_to_so))
-        self._symbols = self._getSymbolNames()
+        self._path_to_so = self._check_path(os.path.expanduser(path_to_so))
+        self._symbols = self._get_symbol_names()
 
     @staticmethod
-    def _checkPath(path):
+    def _check_path(path):
         """
         Check that the path given corresponds to an existing file with '.so' extension
         
@@ -45,7 +46,7 @@ class SharedObjectAnalyser(object):
         logger.error(msg)
         raise IOError(msg)
     
-    def _getSymbolNames(self):
+    def _get_symbol_names(self):
         """
         Get the symbol name in the shared object thanks to nm utility
         
@@ -53,8 +54,8 @@ class SharedObjectAnalyser(object):
         :rtype: list
         """
         logger.info("Trying to get symbol names for the shared object...")
+        cmd = "nm {:s}".format(self._path_to_so)
         try:
-            cmd = "nm {:s}".format(self._path_to_so)
             logger.info("Call of command : %s", cmd)
             output_bytes = subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError as error:
@@ -65,16 +66,16 @@ class SharedObjectAnalyser(object):
         output_str = output_bytes.decode("iso-8859-1").split(os.linesep)
         return [line.split(' ')[-1] for line in output_str]
 
-    def askForSymbol(self, func_name):
+    def ask_for_symbol(self, func_name):
         """
         Ask the user which symbol is relevant in all symbols matching the function name
         
-        :param func_name: name of the fonction to monitor
+        :param func_name: name of the function to monitor
         :type func_name: str 
         """
-        potential_targets = [symb for symb in self._symbols if symb.find(func_name) != -1]
+        potential_targets = [symbol for symbol in self._symbols if symbol.find(func_name) != -1]
         target = raw_input("""Among all the following symbols which one is of interests?"""
-                            """{:s}{:s}{:s}""".format(os.linesep, ":".join(potential_targets), os.linesep))
+                           """{:s}{:s}{:s}""".format(os.linesep, ":".join(potential_targets), os.linesep))
         if len(target.split()) != 1:
             raise ValueError("Please select only one symbol!")
         return target
@@ -84,4 +85,4 @@ if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s:%(name)s:%(levelname)s:%(message)s', level=logging.INFO)
     my_analyser = SharedObjectAnalyser("""~/Documents/Informatique/WORKSPACE_ECLIPSE/"""
                                        """XVOF_NP/xvof/element/vnr_internal_energy_evolution.so""")
-    my_analyser.askForSymbol("solve")
+    my_analyser.ask_for_symbol("solve")
