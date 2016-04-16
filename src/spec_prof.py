@@ -4,13 +4,13 @@
 src.spec_prof generates a shared object that count call and measure execution time of a function defined inside
 another shared object
 
-@author:     guillaume Peillex
+@author:     gpeillex
 
 @copyright:  2016. All rights reserved.
 
 @license:    GNU-GPL (V3)
 
-@contact:    guillaume.peillex@gmail.com
+@contact:    
 @deffield    updated: Updated
 """
 
