@@ -1,8 +1,8 @@
 #!/usr/bin/env python2.7
 # -*- coding: iso-8859-1 -*-
 """
-src.spec_prof generates a shared object that count call and measure execution time of a function defined inside
-another shared object
+SpecProf, Specialized Profiler, generates a shared object that count calls and measure execution time \
+ of a function defined inside a shared object
 
 @author:     gpeillex
 
@@ -10,7 +10,7 @@ another shared object
 
 @license:    GNU-GPL (V3)
 
-@contact:    
+@contact:
 @deffield    updated: Updated
 """
 
@@ -25,22 +25,23 @@ from argparse import RawDescriptionHelpFormatter
 __all__ = []
 __version__ = 0.1
 __date__ = '2016-03-06'
-__updated__ = '2016-03-06'
+__updated__ = '2016-09-23'
 
-DEBUG = 1
+def _parse_docstring():
+    """
+    Return the name of the author, the copyright, the license
+     and the short description in the docstring
 
-
-class CLIError(Exception):
-    """Generic exception to raise and log different fatal errors."""
-    def __init__(self, msg):
-        super(CLIError).__init__(type(self))
-        self.msg = "E: %s" % msg
-
-    def __str__(self):
-        return self.msg
-
-    def __unicode__(self):
-        return self.msg
+    :return: the name of the author, the copyright, the license and the short description
+    """
+    doc_l = __import__('__main__').__doc__.split("\n")
+    keywords = {'@author': "", '@copyright': "", '@license': ""}
+    for line in doc_l:
+        for key in keywords.keys():
+            if line.startswith(key):
+                keywords[key] = line.split(':')[1].strip()
+    shortdesc = doc_l[1]
+    return keywords['@author'], keywords['@copyright'], keywords['@license'], shortdesc
 
 
 def main(argv=None):  # IGNORE:C0111
@@ -50,25 +51,22 @@ def main(argv=None):  # IGNORE:C0111
         sys.argv.extend(argv)
 
     program_name = os.path.basename(sys.argv[0])
-    program_author = __import__('__main__').__doc__.split("\n")[3].split(':')[1].strip()
-    program_copyright = __import__('__main__').__doc__.split("\n")[5].split(':')[1].strip()
-    program_license = __import__('__main__').__doc__.split("\n")[7].split(':')[1].strip()
+    program_author, program_copyright, program_license, program_shortdesc = _parse_docstring()
     program_version = "v%s" % __version__
     program_build_date = str(__updated__)
     program_version_message = '%%(prog)s %s (%s)' % (program_version, program_build_date)
-    program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
-    program_license = '''%s
+    program_license = """{:s}
 
-  Created by %s on %s.
-  Copyright %s
+  Created by {:s} on {:s}.
+  Copyright {:s}
 
-  Licensed under the %s License
+  Licensed under the {:s} License
 
   Distributed on an "AS IS" basis without warranties
   or conditions of any kind, either express or implied.
 
 USAGE
-''' % (program_shortdesc, program_author, str(__date__), program_copyright, program_license)
+""".format(program_shortdesc, program_author, str(__date__), program_copyright, program_license)
 
     try:
         # Setup argument parser
@@ -105,16 +103,6 @@ USAGE
     except KeyboardInterrupt:
         # handle keyboard interrupt #
         return 0
-    except Exception, e:
-        if DEBUG:
-            raise e
-        indent = len(program_name) * " "
-        sys.stderr.write(program_name + ": " + repr(e) + "\n")
-        sys.stderr.write(indent + "  for help use --help")
-        return 2
 
 if __name__ == "__main__":
-    if DEBUG:
-        sys.argv.append("-h")
-        sys.argv.append("-v")
     sys.exit(main())
