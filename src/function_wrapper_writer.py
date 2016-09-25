@@ -10,15 +10,18 @@ import os
 import jinja2
 import re
 from sys import stderr
+from colored_logger import ColoredLoggerAdapter
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("SpecProf.function_wrapper_writer")
+logger.setLevel(logging.DEBUG)
+adapter = ColoredLoggerAdapter(logger)
 
 PATH_TO_TEMPLATES = os.path.join(os.path.dirname(__file__), "jinja_templates")
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader(PATH_TO_TEMPLATES),
                                        extensions=['jinja2.ext.autoescape'],
                                        autoescape=True)
 FUNC_PROTO_PATTERN = "^\s*(\w+\s*\**)\s*(\w+)\s*\((.*)\)"
-FUNC_PARAMETER_PATTERN = "\s*(?:const)?\s*\w+\s*\**\s*(\w+)"
+FUNC_PARAMETER_PATTERN = "\s*(?:const)?\s*\w+(?:\:\:\w+)?\s*(?:const)?\s*[\*|\&]*\s*(\w+)"
 FUNC_PROTO_PO = re.compile(FUNC_PROTO_PATTERN)
 FUNC_PARAMETER_PO = re.compile(FUNC_PARAMETER_PATTERN)
 
@@ -38,18 +41,22 @@ class FunctionWrapperWriter(object):
         """
         self._target_library = target_library
         if language not in ['c', 'cpp', 'c++']:
-            raise ValueError("Available languages are C ('c') or C++ ('cpp'|'c++')")
+            msg = "Available languages are C ('c') or C++ ('cpp'|'c++')"
+            adapter.error(msg)
+            raise ValueError(msg)
         if os.path.isdir(path_to_working_dir):
             self._path_to_working_dir = path_to_working_dir
         else:
-            raise IOError("The path {:s} is not a directory!".format(path_to_working_dir))
+            msg = "The path {:s} is not a directory!".format(path_to_working_dir)
+            adapter.error(msg)
+            raise IOError(msg)
         self._language = language
         #
         if self._language == 'c':
             self._src_filename = os.path.splitext(os.path.basename(self._target_library))[0] + "_wrapper.c"
         elif self._language in ['cpp', 'c++']:
             self._src_filename = os.path.splitext(os.path.basename(self._target_library))[0] + "_wrapper.cpp"
-        self._src_filepath = os.path.join(self._path_to_working_dir, self._src_filename)
+        self._src_file_path = os.path.join(self._path_to_working_dir, self._src_filename)
 
     def write_c_file(self, function_symbol, function_signature, opt_includes=None):
         """
@@ -63,41 +70,49 @@ class FunctionWrapperWriter(object):
         :type opt_includes: list
         """
         template = JINJA_ENVIRONMENT.get_template('template_cfile.c')
-        func_params = split_function_prototype(target_signature)[2]
-        func_params_names = get_function_parameters_names(func_params)
+        func_params = split_function_prototype(function_signature)[2]
         template_values = {'opt_includes': opt_includes,
                            'func_signature': function_signature,
                            'target_library': self._target_library,
                            'target_symbol': function_symbol,
                            'func_params': func_params,
-                           'func_params_names': ", ".join(func_params_names)}
-        with open(self._src_filepath, 'w') as fo:
+                           'func_params_names': ", ".join(get_function_parameters_names(func_params))}
+        adapter.info("Writing file with following parameters : ")
+        adapter.info("Optional includes : {:s}".format(template_values['opt_includes']))
+        adapter.info("Function signature : {:s}".format(template_values['func_signature']))
+        adapter.info("Target library : {:s}".format(template_values['target_library']))
+        adapter.info("Target symbol : {:s}".format(template_values['target_symbol']))
+        adapter.info("Function parameters : {:s}".format(template_values['func_params']))
+        adapter.info("Function parameters names : {:s}".format(template_values['func_params_names']))
+        with open(self._src_file_path, 'w') as fo:
             fo.write(template.render(template_values))
             
-    def compile_src_file(self):
+    def compile_src_file(self, std="c++14"):
         """
         Compile the src file into a shared object that will wrap the call to the function
         of the original library
         """
         shared_object_name = os.path.splitext(self._src_filename)[0] + ".so"
+        common_opts = "-D_GNU_SOURCE  -g -Wall -shared -fPIC -ldl {:s} -o {:s}".format(self._src_filename,
+                                                                                       shared_object_name)
         if self._language == 'c':
-            cmd = "gcc -D_GNU_SOURCE  -g -Wall -shared -fPIC -ldl {:s} -o {:s}".format(self._src_filename,
-                                                                                       shared_object_name)
+            cmd = " ".join(["gcc", common_opts])
         else:
-            cmd = "g++ -D_GNU_SOURCE  -g -Wall -shared -fPIC -ldl {:s} -o {:s}".format(self._src_filename,
-                                                                                       shared_object_name)
+            cmd = " ".join(["g++", "-std={:s}".format(std), "-fpermissive", common_opts])
         saved_dir = os.getcwd()
         os.chdir(self._path_to_working_dir)
         try:
-            print("Launching command :\n{:s}".format(cmd), file=stderr)
-            subprocess.check_output(cmd, shell=True)
+            msg = "Launching command :\n{:s}".format(cmd)
+            adapter.info(msg)
+            subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as sub_error:
-            print("Problem encountered when executing command : {:s}".format(cmd), file=stderr)
-            print("Return code : {:d}".format(sub_error.returncode), file=stderr)
-            print("Available output : {:s}".format(sub_error.output), file=stderr)
+            adapter.error("Problem encountered when executing command : {:s}".format(cmd))
+            adapter.error("Return code : {:d}".format(sub_error.returncode))
+            adapter.error("Available output : {:s}".format(sub_error.output))
+            raise StandardError("Compilation failed!")
         finally:
             os.chdir(saved_dir)
-        print("Compilation terminated successfully")
+        adapter.info("Compilation terminated successfully")
         print("To launch your program with the wrapper library intercepting original one type :")
         ld_preload = os.path.join(self._path_to_working_dir, shared_object_name)
         print("LD_PRELOAD={:s} /path/to/your/program".format(ld_preload))
@@ -116,17 +131,40 @@ def split_function_prototype(func_prototype):
     :type func_prototype: str
     :return: a tuple containing the return type, the name and the parameters list of the function
     :rtype: tuple
+
+    >>> test_proto = "void testWithoutMoveCtor(const move_semantics_test::VectorWithMoveSem& vec_a"
+    >>> test_proto += ",const move_semantics_test::VectorWithMoveSem& vec_b)"
+    >>> split_function_prototype(test_proto) #doctest:+NORMALIZE_WHITESPACE
+    ('void ', 'testWithoutMoveCtor',
+    'const move_semantics_test::VectorWithMoveSem& vec_a,const move_semantics_test::VectorWithMoveSem& vec_b')
     """
     results = re.search(FUNC_PROTO_PO, func_prototype).groups()
     return results
-        
-        
+
+
 def get_function_parameters_names(func_parameters):
     """
     :param func_parameters: parameters of the function as return by the method _getParameters
     :type func_parameters: str
     :return: name of the parameters of the function
     :rtype: list
+
+    >>> test_params = "MieGruneisenParameters_t *params"
+    >>> get_function_parameters_names(test_params)
+    ['params']
+    >>> test_params = "const size_t pb_size"
+    >>> get_function_parameters_names(test_params)
+    ['pb_size']
+    >>> test_params = "const double const * specific_volume"
+    >>> get_function_parameters_names(test_params)
+    ['specific_volume']
+    >>> test_params = "const double const *internal_energy, double* pressure, double* gamma_per_vol, double* c_son"
+    >>> get_function_parameters_names(test_params)
+    ['internal_energy', 'pressure', 'gamma_per_vol', 'c_son']
+    >>> test_params = "const move_semantics_test::VectorWithMoveSem& vec_a"
+    >>> test_params += ",const move_semantics_test::VectorWithMoveSem& vec_b"
+    >>> get_function_parameters_names(test_params)
+    ['vec_a', 'vec_b']
     """
     results = re.findall(FUNC_PARAMETER_PO, func_parameters)
     return results
