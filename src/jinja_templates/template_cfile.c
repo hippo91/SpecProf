@@ -30,7 +30,7 @@ static const char *target_library = "{{ target_library }}";
 // Target symbol
 static const char *target_symbol = "{{ target_symbol }}";
 // Specific pointer to function type
-typedef void (*func_ptr)({{ func_params }});
+typedef void (*func_ptr)({{ func_params|safe }});
 // Address of the target function will be stored in :
 static func_ptr orig_func = NULL;
 // Total number of calls
@@ -74,7 +74,7 @@ void __attribute__((constructor)) setup()
 }
 
 // Function prototype
-{{ func_signature }}
+{{ func_signature|safe }}
 {
     clock_t start;
     struct timeval start_r, end_r;
@@ -82,9 +82,10 @@ void __attribute__((constructor)) setup()
     call_count += 1;
     start = clock();
     gettimeofday(&start_r, NULL);
-    (*orig_func)({{ func_params }});
+    (*orig_func)({{ func_params_names|safe }});
     gettimeofday(&end_r, NULL);
-    total_real_time_used += ((double) (end_r.tv_sec - start_r.tv_sec)) * 1e+06 + ((double) (end_r.tv_usec - start_r.tv_usec));
+    total_real_time_used += ((double) (end_r.tv_sec - start_r.tv_sec)) * 1e+06 +
+                            ((double) (end_r.tv_usec - start_r.tv_usec));
     total_cpu_time_used += ((double) (clock() - start)) / CLOCKS_PER_SEC;
 }
 
