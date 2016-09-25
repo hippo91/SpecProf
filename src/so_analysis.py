@@ -7,6 +7,7 @@ from elftools.elf.elffile import ELFFile
 import os
 import sys
 
+
 class ElfSharedObjectAnalyser(object):
     """
     This module parses the ELF shared object to retrieve symbols
@@ -61,7 +62,6 @@ class ElfSharedObjectAnalyser(object):
                 return [sym.name for sym in sym_sec.iter_symbols() if sym.name]
         except IOError:
             print("Error opening file {:s} for reading!".format(self._path_to_so))
-
 
     def ask_for_symbol(self, func_name):
         """
