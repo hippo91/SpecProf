@@ -69,7 +69,10 @@ class FunctionWrapperWriter(object):
         :param opt_includes: optional includes
         :type opt_includes: list
         """
-        template = JINJA_ENVIRONMENT.get_template('template_cfile.c')
+        if self._language = "c":
+          template = JINJA_ENVIRONMENT.get_template('template_cfile.c')
+        elif self._language in ['c++', 'cpp']:
+          template = JINJA_ENVIRONMENT.get_template('template_cppfile.cpp')
         func_params = split_function_prototype(function_signature)[2]
         template_values = {'opt_includes': opt_includes,
                            'func_signature': function_signature,
