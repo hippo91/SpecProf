@@ -2,10 +2,7 @@
 #include <iostream>
 #include <string>
 #include <exception>
-#include <signal.h>
-#include <time.h>
-#include <sys/time.h>
-#include <stdlib.h>
+#include <chrono>
 // necessary for RTLD_NEXT in dlfcn.h
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -36,10 +33,8 @@ typedef void (*func_ptr)({{ func_params|safe }});
 static func_ptr orig_func(nullptr);
 // Total number of calls
 static long int call_count(0);
-// Cumulative cpu time used by the function
-static double total_cpu_time_used(0.);
-// Cumulative real time used by the function
-static double total_real_time_used(0.);
+// Cumulative time used by the function
+static std::chrono::microseconds total_time_used;
 
 // --------------------------------------------------------------
 // -- FUNCTIONS
@@ -53,7 +48,7 @@ void __attribute__((constructor)) setup()
         std::cout << "Call of the library initializer!" << std::endl;
         void *handle;  // Handle of the target library
         dlerror();  // Cleaning of potential previous error message
-        handle = dlopen(target_library, RTLD_LAZY);
+        handle = dlopen(target_library.c_str(), RTLD_LAZY);
         if (!handle) {
             std::cerr << "Unable to access origin library!" << std::endl;
             std::cerr << dlerror() << std::endl;
@@ -61,7 +56,7 @@ void __attribute__((constructor)) setup()
         } else {
             std::cout << "Library " << target_library << " found and opened successfully!" << std::endl;
         }
-        orig_func = dlsym(handle, target_symbol);
+        orig_func = dlsym(handle, target_symbol.c_str());
         char *error_msg = dlerror();
         if (error_msg != nullptr) {
             std::cerr << "Unable to resolve " << target_symbol << " symbol!" << std::endl;
@@ -77,17 +72,13 @@ void __attribute__((constructor)) setup()
 // Function prototype
 {{ func_signature|safe }}
 {
-    clock_t start;
-    struct timeval start_r, end_r;
+    std::chrono::system_clock::time_point start, end;
     // Call of the original function and measurement of execution time
     call_count += 1;
-    start = clock();
-    gettimeofday(&start_r, NULL);
+    start = std::chrono::high_resolution_clock::now();
     (*orig_func)({{ func_params_names|safe }});
-    gettimeofday(&end_r, NULL);
-    total_real_time_used += static_cast<double>(end_r.tv_sec - start_r.tv_sec) * 1e+06 +
-                            static_cast<double> (end_r.tv_usec - start_r.tv_usec);
-    total_cpu_time_used += static_cast<double> (clock() - start) / CLOCKS_PER_SEC;
+    end = std::chrono::high_resolution_clock::now();
+    total_time_used += std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 }
 
 
@@ -97,7 +88,6 @@ void __attribute__((destructor)) finalize()
     // Printing of the results
     std::cout << "--------------------------------" << std::endl;
     std::cout << "Call count = " << call_count << std::endl;
-    std::cout << "Cpu time consumed = " << total_cpu_time_used << " seconds" << std::endl;
-    std::cout << "Real time consumed = " << total_real_time_used / 1e+06 << " seconds" << std::endl;
+    std::cout << "Total time consumed = " << total_time_used.count() << " microseconds" << std::endl;
     std::cout << "--------------------------------" << std::endl;
 }

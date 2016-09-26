@@ -69,7 +69,7 @@ class FunctionWrapperWriter(object):
         :param opt_includes: optional includes
         :type opt_includes: list
         """
-        if self._language = "c":
+        if self._language == "c":
           template = JINJA_ENVIRONMENT.get_template('template_cfile.c')
         elif self._language in ['c++', 'cpp']:
           template = JINJA_ENVIRONMENT.get_template('template_cppfile.cpp')
