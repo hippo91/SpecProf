@@ -58,7 +58,7 @@ class FunctionWrapperWriter(object):
             self._src_filename = os.path.splitext(os.path.basename(self._target_library))[0] + "_wrapper.cpp"
         self._src_file_path = os.path.join(self._path_to_working_dir, self._src_filename)
 
-    def write_c_file(self, function_symbol, function_signature, opt_includes=None):
+    def write_src_file(self, function_symbol, function_signature, opt_includes=None):
         """
         Write c file wrapper using jinja and template
         
@@ -73,11 +73,12 @@ class FunctionWrapperWriter(object):
           template = JINJA_ENVIRONMENT.get_template('template_cfile.c')
         elif self._language in ['c++', 'cpp']:
           template = JINJA_ENVIRONMENT.get_template('template_cppfile.cpp')
-        func_params = split_function_prototype(function_signature)[2]
+        _, func_name, func_params = split_function_prototype(function_signature)
         template_values = {'opt_includes': opt_includes,
                            'func_signature': function_signature,
                            'target_library': self._target_library,
                            'target_symbol': function_symbol,
+                           'func_name': func_name,
                            'func_params': func_params,
                            'func_params_names': ", ".join(get_function_parameters_names(func_params))}
         adapter.info("Writing file with following parameters : ")
@@ -85,6 +86,7 @@ class FunctionWrapperWriter(object):
         adapter.info("Function signature : {:s}".format(template_values['func_signature']))
         adapter.info("Target library : {:s}".format(template_values['target_library']))
         adapter.info("Target symbol : {:s}".format(template_values['target_symbol']))
+        adapter.info("Function name : {:s}".format(template_values['func_name']))
         adapter.info("Function parameters : {:s}".format(template_values['func_params']))
         adapter.info("Function parameters names : {:s}".format(template_values['func_params_names']))
         with open(self._src_file_path, 'w') as fo:
@@ -177,7 +179,7 @@ if __name__ == "__main__":
                         """ const double internal_energy, double* pressure, double* gamma_per_vol, double* c_son)""")
     my_func_wrap = FunctionWrapperWriter("""/home/guillaume2/Documents/Informatique/WORKSPACE_ECLIPSE/XVOF_NP/xvof/"""
                                          """element/vnr_internal_energy_evolution.so""", "/tmp/test")
-    my_func_wrap.write_c_file(
+    my_func_wrap.write_src_file(
         function_symbol="solveVolumeEnergy",
         function_signature="""void solveVolumeEnergy(MieGruneisenParameters_t *params, const double specific_volume,"""
                            """ const double internal_energy, double* pressure, double* gamma_per_vol, double* c_son)""",

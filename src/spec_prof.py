@@ -122,12 +122,12 @@ USAGE
         _so_analyser =  shared_library_analysis.SharedObjectAnalyser(origin_library)
         target_symbol = _so_analyser.ask_for_symbol(function_name)
         adapter.info("... done.")
-        adapter.info("Generating c file...")
+        adapter.info("Generating source file...")
         wrapper_writer = function_wrapper_writer.FunctionWrapperWriter(origin_library, working_dir,
                                                                        language=_so_analyser.language)
-        wrapper_writer.write_c_file(target_symbol, function_signature, optional_includes)
+        wrapper_writer.write_src_file(target_symbol, function_signature, optional_includes)
         adapter.info("...done.")
-        adapter.info("Compiling c file...")
+        adapter.info("Compiling source file...")
         wrapper_writer.compile_src_file()
         adapter.info("...done.")
         return 0

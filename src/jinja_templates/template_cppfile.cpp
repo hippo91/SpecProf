@@ -87,6 +87,7 @@ void __attribute__((destructor)) finalize()
 {
     // Printing of the results
     std::cout << "--------------------------------" << std::endl;
+    std::cout << "RESULTS FOR FUNCTION : " << "{{ func_name }}" << std::endl;
     std::cout << "Call count = " << call_count << std::endl;
     std::cout << "Total time consumed = " << total_time_used.count() << " microseconds" << std::endl;
     std::cout << "--------------------------------" << std::endl;
