@@ -87,7 +87,7 @@ class FunctionWrapperWriter(object):
         with open(self._src_file_path, 'w') as fo:
             fo.write(template.render(template_values))
             
-    def compile_src_file(self, std="c++14"):
+    def compile_src_file(self, std="c++11"):
         """
         Compile the src file into a shared object that will wrap the call to the function
         of the original library

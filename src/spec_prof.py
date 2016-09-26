@@ -103,7 +103,7 @@ USAGE
         # Process arguments
         args = parser.parse_args()
 
-        origin_library = os.path.expanduser(args.origin_library)
+        origin_library = os.path.abspath(os.path.expanduser(args.origin_library))
         function_signature = args.signature
         working_dir = args.wdir
         try:
