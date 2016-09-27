@@ -37,4 +37,4 @@ Once generated, the shared library wrapper is used thanks to the following comma
 
 # Prerequisites
 
-Standard unix/linux tools such as **ldd** **nm** and a compilator able to deal with C++2011 are required.
+Standard unix/linux tools such as **ldd**, **nm** and a compilator able to deal with C++2011 are required.
