@@ -64,28 +64,28 @@ def _parse_docstring():
     return keywords['@author'], keywords['@copyright'], keywords['@license'], shortdesc
   
 def _epilog():
-  """
-  Return the epilog of the program argument parser which explains basic usage
-  """
-  msg = """
-  #################
-  Description
+    """
+    Return the epilog of the program argument parser which explains basic usage
+    """
+    msg = """
+    #################
+    Description
 
-  SpecProf is used to profile a specific function in a shared library, hereafter named target library, by making use of dlsym function.
-  There is no need to compile this target library with specific flags and of course no need to modify the source code.
-  SpecProf generates a C or C++ source file, depending on the language used to build the target library, and compiles it into a shared library that
-  wrapps the call of the function in the target library.wrapps
+    SpecProf is used to profile a specific function in a shared library, hereafter named target library, by making use of dlsym function.
+    There is no need to compile this target library with specific flags and of course no need to modify the source code.
+    SpecProf generates a C or C++ source file, depending on the language used to build the target library, and compiles it into a shared library that
+    wrapps the call of the function in the target library.wrapps
 
-  #################
-  Usage
+    #################
+    Usage
 
-  We want to profile the function named *computePressure* in the shared library under the path /path/to/libcompute_hydrodynamics.so. The complete signature
-  of the function is : *void computePressure(const MySpecialObject&, double* datas, int param);*
-  We just have to run :
+    We want to profile the function named *computePressure* in the shared library under the path /path/to/libcompute_hydrodynamics.so. The complete signature
+    of the function is : *void computePressure(const MySpecialObject&, double* datas, int param);*
+    We just have to run :
 
-  ./spec_prof.py -o /path/to/libcompute_hydrodynamics.so -s "void computePressure(const MySpecialObject&, double* datas, int param)" -w
-  """
-  return msg
+    ./spec_prof.py -o /path/to/libcompute_hydrodynamics.so -s "void computePressure(const MySpecialObject&, double* datas, int param)" -w
+    """
+    return msg
 
 
 def main(argv=None):  # IGNORE:C0111
@@ -131,10 +131,15 @@ USAGE
         function_signature = args.signature
         working_dir = args.wdir
         try:
+            # Try considering ony one optional include
             single_opt_inc = os.path.abspath(os.path.expanduser(args.opt_inc))
             optional_includes = [single_opt_inc]
         except AttributeError:
+            # Try with a list of optional includes
             optional_includes = [os.path.abspath(os.path.expanduser(x)) for x in args.opt_inc]
+        except TypeError:
+            # No optional includes
+            pass
 
         adapter.info("Analysing the function prototype...")
         r_type, function_name, params = function_wrapper_writer.split_function_prototype(function_signature)
