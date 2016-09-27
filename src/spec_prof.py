@@ -130,16 +130,15 @@ USAGE
         origin_library = os.path.abspath(os.path.expanduser(args.origin_library))
         function_signature = args.signature
         working_dir = args.wdir
-        try:
-            # Try considering ony one optional include
-            single_opt_inc = os.path.abspath(os.path.expanduser(args.opt_inc))
-            optional_includes = [single_opt_inc]
-        except AttributeError:
-            # Try with a list of optional includes
-            optional_includes = [os.path.abspath(os.path.expanduser(x)) for x in args.opt_inc]
-        except TypeError:
-            # No optional includes
-            pass
+        optional_includes = None
+        if args.opt_inc:
+            try:
+                # Try considering ony one optional include
+                single_opt_inc = os.path.abspath(os.path.expanduser(args.opt_inc))
+                optional_includes = [single_opt_inc]
+            except AttributeError:
+                # Try with a list of optional includes
+                optional_includes = [os.path.abspath(os.path.expanduser(x)) for x in args.opt_inc]
 
         adapter.info("Analysing the function prototype...")
         r_type, function_name, params = function_wrapper_writer.split_function_prototype(function_signature)
