@@ -12,7 +12,7 @@ SpecProf, Specialized Profiler, generates a shared object that count calls and m
 @contact:
 @deffield    updated: Updated
 
-@todo: write a template dedicated to c++ lib
+@todo: test for a method
 @todo: describe the usage in README.md
 @todo: list the prerequisits (jinja2, nm and ldd tools, g++, gcc) in README.md
 """
