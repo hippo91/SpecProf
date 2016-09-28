@@ -166,7 +166,8 @@ USAGE
                 optional_includes = [os.path.abspath(os.path.expanduser(x)) for x in args.opt_inc]
 
         adapter.info("Analysing the function prototype...")
-        r_type, function_name, params = function_wrapper_writer.split_function_prototype(function_signature)
+        r_type, namespace, class_name, function_name, params =\
+            function_wrapper_writer.split_function_prototype(function_signature)
         adapter.info("... done.")
         adapter.info("|_> Return type is : {:s}".format(r_type))
         adapter.info("|_> Function name is : {:s}".format(function_name))

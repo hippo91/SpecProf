@@ -20,10 +20,6 @@ PATH_TO_TEMPLATES = os.path.join(os.path.dirname(__file__), "jinja_templates")
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader(PATH_TO_TEMPLATES),
                                        extensions=['jinja2.ext.autoescape'],
                                        autoescape=True)
-FUNC_PROTO_PATTERN = "^\s*(\w+\s*\**)\s*(\w+)\s*\((.*)\)"
-FUNC_PARAMETER_PATTERN = "\s*(?:const)?\s*\w+(?:\:\:\w+)?\s*(?:const)?\s*[\*|\&]*\s*(\w+)"
-FUNC_PROTO_PO = re.compile(FUNC_PROTO_PATTERN)
-FUNC_PARAMETER_PO = re.compile(FUNC_PARAMETER_PATTERN)
 
 
 class FunctionWrapperWriter(object):
@@ -73,7 +69,7 @@ class FunctionWrapperWriter(object):
             template = JINJA_ENVIRONMENT.get_template('template_cfile.c')
         elif self._language in ['c++', 'cpp']:
             template = JINJA_ENVIRONMENT.get_template('template_cppfile.cpp')
-        _, func_name, func_params = split_function_prototype(function_signature)
+        r_type, namespace, class_name, func_name, func_params = split_function_prototype(function_signature)
         template_values = {'opt_includes': opt_includes,
                            'func_signature': function_signature,
                            'target_library': self._target_library,
@@ -140,11 +136,31 @@ def split_function_prototype(func_prototype):
     >>> test_proto = "void testWithoutMoveCtor(const move_semantics_test::VectorWithMoveSem& vec_a"
     >>> test_proto += ",const move_semantics_test::VectorWithMoveSem& vec_b)"
     >>> split_function_prototype(test_proto) #doctest:+NORMALIZE_WHITESPACE
-    ('void ', 'testWithoutMoveCtor',
+    ('void ', None, None, 'testWithoutMoveCtor',
     'const move_semantics_test::VectorWithMoveSem& vec_a,const move_semantics_test::VectorWithMoveSem& vec_b')
+    >>> test_proto = "double & *  ::move_semantics_test::VectorWithoutMoveSem::computeSum(const move_semantics_test::VectorWithMoveSem& vec_a)"
+    >>> split_function_prototype(test_proto)
+    ('double & *  ', 'move_semantics_test', 'VectorWithoutMoveSem', 'computeSum', 'const move_semantics_test::VectorWithMoveSem& vec_a')
     """
-    results = re.search(FUNC_PROTO_PO, func_prototype).groups()
-    return results
+    r_type, namespace, class_name, func_name = [None] * 4
+    param_extrtor_pattern = r"^(.*)\s*\((.*)\)"
+    param_extrtor_po = re.compile(param_extrtor_pattern)
+    left_part_splitter_pattern = r"^\s*(\w+\s*[\*\s*&]*)?\s*(.*)"
+    left_part_splitter_po = re.compile(left_part_splitter_pattern)
+    left_part, parameters = re.search(param_extrtor_po, func_prototype).groups()
+    r_type, all_names = re.search(left_part_splitter_po, left_part).groups()
+    all_names = all_names.lstrip(":")
+    try:
+        namespace, class_name, func_name = all_names.split("::")
+    except ValueError:
+        try:
+            class_name, func_name = all_names.split("::")
+        except ValueError:
+            func_name = all_names
+    # func_proto_pattern = "^\s*(\w+\s*\**)\s*(\w+)\s*\((.*)\)"
+    # func_proto_po = re.compile(func_proto_pattern)
+    # results = re.search(func_proto_po, func_prototype).groups()
+    return r_type, namespace, class_name, func_name, parameters
 
 
 def get_function_parameters_names(func_parameters):
@@ -171,7 +187,9 @@ def get_function_parameters_names(func_parameters):
     >>> get_function_parameters_names(test_params)
     ['vec_a', 'vec_b']
     """
-    results = re.findall(FUNC_PARAMETER_PO, func_parameters)
+    func_paramater_pattern = "\s*(?:const)?\s*\w+(?:\:\:\w+)?\s*(?:const)?\s*[\*|\&]*\s*(\w+)"
+    func_paramater_po = re.compile(func_paramater_pattern)
+    results = re.findall(func_paramater_po, func_parameters)
     return results
 
 if __name__ == "__main__":

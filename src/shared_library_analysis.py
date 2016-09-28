@@ -80,8 +80,22 @@ class SharedObjectAnalyser(object):
         :param func_name: name of the function to monitor
         :type func_name: str 
         """
-        potential_targets = {symbol for symbol in self.__symbols if symbol.find(func_name) != -1}
-
+        func_name_targets = {symbol for symbol in self.__symbols if symbol.find(func_name) != -1}
+        class_name_targets = set(func_name_targets)
+        namespace_targets = set(func_name_targets)
+        if class_name is not None:
+            class_name_targets = {symbol for symbol in self.__symbols if symbol.find(class_name) != -1}
+        if namespace is not None:
+            namespace_targets = {symbol for symbol in self.__symbols if symbol.find(namespace) != -1}
+        potential_targets = func_name_targets & class_name_targets & namespace_targets
+        if len(potential_targets) == 0:
+            msg = "Unable to detect a symbol corresponding to the function!"
+            adapter.error(msg)
+            adapter.error("Targets of the function name are : {:s}".format(func_name_targets))
+            adapter.error("Targets of the class name are : {:s}".format(class_name_targets))
+            adapter.error("Targets of the namespace are : {:s}".format(namespace_targets))
+            adapter.error("Intersection of the three sets is nill!")
+            raise ValueError(msg)
         if len(potential_targets) != 1:
             target = raw_input("""Among all the following symbols which one is of interests?"""
                                """{:s}{:s}{:s}""".format(os.linesep, ", ".join(potential_targets), os.linesep))
