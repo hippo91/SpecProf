@@ -153,7 +153,7 @@ USAGE
         args = parser.parse_args()
 
         origin_library = os.path.abspath(os.path.expanduser(args.origin_library))
-        function_signature = args.signature.rstrip().rstrip(;)
+        function_signature = args.signature.rstrip().rstrip(';')
         working_dir = args.wdir
         optional_includes = None
         if args.opt_inc:

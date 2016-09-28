@@ -73,19 +73,20 @@ class SharedObjectAnalyser(object):
         output_str = output_bytes.decode("iso-8859-1").split(os.linesep)
         return [line.split(' ')[-1] for line in output_str]
 
-    def ask_for_symbol(self, func_name):
+    def ask_for_symbol(self, func_name, class_name=None, namespace=None):
         """
         Ask the user which symbol is relevant in all symbols matching the function name
         
         :param func_name: name of the function to monitor
         :type func_name: str 
         """
-        potential_targets = [symbol for symbol in self.__symbols if symbol.find(func_name) != -1]
+        potential_targets = {symbol for symbol in self.__symbols if symbol.find(func_name) != -1}
+
         if len(potential_targets) != 1:
             target = raw_input("""Among all the following symbols which one is of interests?"""
                                """{:s}{:s}{:s}""".format(os.linesep, ", ".join(potential_targets), os.linesep))
         else:
-            target = potential_targets[0]
+            target = potential_targets.pop()
         if len(target.split()) != 1:
             adapter.error("Please select only one symbol!")
             raise ValueError("Please select only one symbol!")

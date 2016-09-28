@@ -1,10 +1,8 @@
 // Mandatory includes
 #include <iostream>
-#include <exception>
 #include <string>
+#include <exception>
 #include <chrono>
-#include <string.h>
-#include <stdlib.h>
 // necessary for RTLD_NEXT in dlfcn.h
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -26,9 +24,9 @@
 // --------------------------------------------------------------
 
 // Target library path
-static const char *target_library = "{{ target_library }}";
+static const std::string target_library("{{ target_library }}");
 // Target symbol
-static const char *target_symbol = "{{ target_symbol }}";
+static const std::string target_symbol("{{ target_symbol }}");
 // Specific pointer to function type
 typedef void (*func_ptr)({{ func_params|safe }});
 // Address of the target function will be stored in :
@@ -40,38 +38,38 @@ static std::chrono::microseconds total_time_used;
 
 // --------------------------------------------------------------
 // -- FUNCTIONS
-// --------------------------------------------------------------
+// -------------------------------------------------------------
 
 //Library Initializer
 void __attribute__((constructor)) setup()
 {
     if (orig_func == nullptr) {
-        std::cout << "***********************************************" << std::endl;
+        std::cout << "--------------------------------" << std::endl;
         std::cout << "Call of the library initializer!" << std::endl;
         void *handle;  // Handle of the target library
         dlerror();  // Cleaning of potential previous error message
-        std::cout << "Trying to open the target library...";
-        handle = dlopen(target_library, RTLD_LAZY);
+        std::cout << "Trying to open the target library..." << std::endl;
+        handle = dlopen(target_library.c_str(), RTLD_LAZY);
         std::cout << "...done!" << std::endl;
         if (!handle) {
-            std::cout << "Unable to access origin library!" << std::endl;
+            std::cerr << "Unable to access origin library!" << std::endl;
             std::cerr << dlerror() << std::endl;
             std::terminate();
         } else {
-            std::cout << "Library " << target_library << " found and opened successfully!" << std::endl;
+            std::cout << "Library " << target_library << " found and opened successfully!" << std::endl << std::flush;
         }
-        std::cout << "Trying to acquire the target symbol...";
-        orig_func = dlsym(handle, target_symbol);
+        std::cout << "Trying to acquire the target symbol..." << std::endl << std::flush;
+        orig_func = dlsym(handle, target_symbol.c_str());
         std::cout << "...done" << std::endl;
         char *error_msg = dlerror();
-        if (error_msg != nullptr) {
-            std::cout << "Unable to resolve " << target_symbol << " symbol!" << std::endl;
-            std::cerr << error_msg << std::endl;
-            std::terminate();
+        if (!error_msg) {
+            std::cout << "Symbol " << target_symbol << " original address: " << orig_func << std::endl;
         } else {
-            std::cout << "Symbol " << target_symbol << " original address:" << orig_func << std::endl;
+            std::cerr << error_msg << std::endl;
+            std::cerr << "Unable to resolve " << target_symbol << " symbol!" << std::endl;
+            std::terminate();
         }
-        std::cout << "***********************************************" << std::endl;
+        std::cout << "--------------------------------" << std::endl;
     }
 }
 
@@ -92,9 +90,9 @@ void __attribute__((constructor)) setup()
 void __attribute__((destructor)) finalize()
 {
     // Printing of the results
-    std::cout << "***********************************************" << std::endl;
+    std::cout << "--------------------------------" << std::endl;
     std::cout << "RESULTS FOR FUNCTION : " << "{{ func_name }}" << std::endl;
     std::cout << "Call count = " << call_count << std::endl;
     std::cout << "Total time consumed = " << total_time_used.count() << " microseconds" << std::endl;
-    std::cout << "***********************************************" << std::endl;
+    std::cout << "--------------------------------" << std::endl;
 }
