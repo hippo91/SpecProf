@@ -83,3 +83,6 @@ target/
 # Eclipse project and settings
 .project
 .settings
+
+# jetbrains / Pycharm settings
+.idea
