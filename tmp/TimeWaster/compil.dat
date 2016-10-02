@@ -1,3 +1,0 @@
-gcc -Wall -shared -fPIC  TimeWaster.* -o libTimeWaster.so
-gcc -L/home/guillaume2/Documents/Informatique/WORKSPACE_ECLIPSE/SpecProf/tmp/TimeWaster  Launcher.c -lTimeWaster -o  time_loss_launcher
-export LD_LIBRARY_PATH=:/opt/lib:/home/guillaume2/Documents/Informatique/WORKSPACE_ECLIPSE/SpecProf/tmp/TimeWaster:/home/guillaume2/Documents/Informatique/WORKSPACE_ECLIPSE/SpecProf/tmp/TimeWaster
