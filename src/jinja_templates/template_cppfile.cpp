@@ -30,7 +30,7 @@ static const char *target_library = "{{ target_library }}";
 // Target symbol
 static const char *target_symbol = "{{ target_symbol }}";
 // Specific pointer to function type
-typedef void (*func_ptr)({{ func_params|safe }});
+typedef {{ return_type|safe }} ({{ func_full_decl }}*func_ptr)({{ func_params|safe }});
 // Address of the target function will be stored in :
 static func_ptr orig_func(nullptr);
 // Total number of calls
@@ -61,7 +61,8 @@ void __attribute__((constructor)) setup()
             std::cout << "Library " << target_library << " found and opened successfully!" << std::endl;
         }
         std::cout << "Trying to acquire the target symbol...";
-        orig_func = dlsym(handle, target_symbol);
+        void * tmp_ptr = dlsym(handle, target_symbol);
+        memcpy(&orig_func, &tmp_ptr, sizeof(&tmp_ptr));
         std::cout << "...done" << std::endl;
         char *error_msg = dlerror();
         if (error_msg != nullptr) {
@@ -69,7 +70,7 @@ void __attribute__((constructor)) setup()
             std::cerr << error_msg << std::endl;
             std::terminate();
         } else {
-            std::cout << "Symbol " << target_symbol << " original address:" << orig_func << std::endl;
+            std::cout << "Symbol " << target_symbol << " original address:" << &orig_func << std::endl;
         }
         std::cout << "***********************************************" << std::endl;
     }
@@ -82,9 +83,26 @@ void __attribute__((constructor)) setup()
     // Call of the original function and measurement of execution time
     call_count += 1;
     start = std::chrono::high_resolution_clock::now();
+    std::cout << "Call of the original function ...";
+    {% if return_type != "void" %}
+    {% if class_name != "" %}
+    {{ return_type|safe }} ret_val = (this->*orig_func)({{ func_params_names|safe }});
+    {% else %}
+    {{ return_type|safe }} ret_val = (*orig_func)({{ func_params_names|safe }});
+    {% endif %}
+    {% else %}
+    {% if class_name != "" %}
+    (this->*orig_func)({{ func_params_names|safe }});
+    {% else %}
     (*orig_func)({{ func_params_names|safe }});
+    {% endif %}
+    {% endif %}
+    std::cout << "...done" << std::endl;
     end = std::chrono::high_resolution_clock::now();
     total_time_used += std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    {% if return_type != "void" %}
+    return ret_val;
+    {% endif %}
 }
 
 
