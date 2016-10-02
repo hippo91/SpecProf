@@ -70,7 +70,7 @@ void __attribute__((constructor)) setup()
             std::cerr << error_msg << std::endl;
             std::terminate();
         } else {
-            std::cout << "Symbol " << target_symbol << " original address:" << &orig_func << std::endl;
+            std::cout << "Symbol " << target_symbol << " original address:" << tmp_ptr << std::endl;
         }
         std::cout << "***********************************************" << std::endl;
     }

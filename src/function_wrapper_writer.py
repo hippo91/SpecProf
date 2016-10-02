@@ -91,7 +91,7 @@ class FunctionWrapperWriter(object):
         adapter.info("Target library : '{:s}'".format(template_values['target_library']))
         adapter.info("Target symbol : '{:s}'".format(template_values['target_symbol']))
         adapter.info("Function return type : '{:s}'".format(template_values["return_type"]))
-        adapter.info("Class name : {:s}".format(['class_name']))
+        adapter.info("Class name : {:s}".format(template_values['class_name']))
         adapter.info("Function name : '{:s}'".format(template_values['func_name']))
         adapter.info("Function full declaration : '{:s}'".format(template_values['func_full_decl']))
         adapter.info("Function parameters : '{:s}'".format(template_values['func_params']))
