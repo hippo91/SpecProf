@@ -5,13 +5,11 @@ A python application that generates a wrapper library able to count and measure 
 
 SpecProf is used to profile a specific function in a shared library, hereafter named target library, by making use of dlsym function.
 There is no need to compile this target library with specific flags and of course no need to modify the source code.
-SpecProf generates a C or C++ source file, depending on the language used to build the target library, and compiles it into a shared library that
-wrapps the call of the function in the target library
+SpecProf generates a C or C++ source file, depending on the language used to build the target library, and compiles it into a shared library that wrapps the call of the function in the target library
 
 # Usage
 
-We want to profile the function named **computePressure** in the shared library under the path **/path/to/libcompute_hydrodynamics.so**. The complete signature
-of the function is :
+We want to profile the function named **computePressure** in the shared library under the path **/path/to/libcompute_hydrodynamics.so**. The complete signature of the function is :
 
 **void computePressure(const MySpecialObject&, double* datas, int param);**
 
