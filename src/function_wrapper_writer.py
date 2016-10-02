@@ -70,21 +70,32 @@ class FunctionWrapperWriter(object):
         elif self._language in ['c++', 'cpp']:
             template = JINJA_ENVIRONMENT.get_template('template_cppfile.cpp')
         r_type, namespace, class_name, func_name, func_params = split_function_prototype(function_signature)
+        func_full_decl = "::".join([namespace, class_name])
+        if func_full_decl == "::":
+            func_full_decl = ""
+        else:
+            func_full_decl += "::"
         template_values = {'opt_includes': opt_includes,
                            'func_signature': function_signature,
                            'target_library': self._target_library,
                            'target_symbol': function_symbol,
+                           'return_type': r_type,
                            'func_name': func_name,
+                           'class_name': class_name,
+                           'func_full_decl': func_full_decl,
                            'func_params': func_params,
                            'func_params_names': ", ".join(get_function_parameters_names(func_params))}
         adapter.info("Writing file with following parameters : ")
-        adapter.info("Optional includes : {:s}".format(template_values['opt_includes']))
-        adapter.info("Function signature : {:s}".format(template_values['func_signature']))
-        adapter.info("Target library : {:s}".format(template_values['target_library']))
-        adapter.info("Target symbol : {:s}".format(template_values['target_symbol']))
-        adapter.info("Function name : {:s}".format(template_values['func_name']))
-        adapter.info("Function parameters : {:s}".format(template_values['func_params']))
-        adapter.info("Function parameters names : {:s}".format(template_values['func_params_names']))
+        adapter.info("Optional includes : '{:s}'".format(template_values['opt_includes']))
+        adapter.info("Function signature : '{:s}'".format(template_values['func_signature']))
+        adapter.info("Target library : '{:s}'".format(template_values['target_library']))
+        adapter.info("Target symbol : '{:s}'".format(template_values['target_symbol']))
+        adapter.info("Function return type : '{:s}'".format(template_values["return_type"]))
+        adapter.info("Class name : {:s}".format(['class_name']))
+        adapter.info("Function name : '{:s}'".format(template_values['func_name']))
+        adapter.info("Function full declaration : '{:s}'".format(template_values['func_full_decl']))
+        adapter.info("Function parameters : '{:s}'".format(template_values['func_params']))
+        adapter.info("Function parameters names : '{:s}'".format(template_values['func_params_names']))
         with open(self._src_file_path, 'w') as fo:
             fo.write(template.render(template_values))
             
@@ -124,43 +135,43 @@ def split_function_prototype(func_prototype):
     """
     Return a tuple made of the :
         - return type of the function,
+        - namespace,
+        - class name,
         - name of the function,
         - parameters list of the function
-    which prototype is func_prototype
-    
+
     :param func_prototype: prototype of the function
     :type func_prototype: str
-    :return: a tuple containing the return type, the name and the parameters list of the function
+    :return: a tuple containing the return type, the namespace, the class name,  the name of the function
+     and the parameters list of the function
     :rtype: tuple
 
     >>> test_proto = "void testWithoutMoveCtor(const move_semantics_test::VectorWithMoveSem& vec_a"
     >>> test_proto += ",const move_semantics_test::VectorWithMoveSem& vec_b)"
     >>> split_function_prototype(test_proto) #doctest:+NORMALIZE_WHITESPACE
-    ('void ', None, None, 'testWithoutMoveCtor',
+    ('void ', '', '', 'testWithoutMoveCtor',
     'const move_semantics_test::VectorWithMoveSem& vec_a,const move_semantics_test::VectorWithMoveSem& vec_b')
-    >>> test_proto = "double & *  ::move_semantics_test::VectorWithoutMoveSem::computeSum(const move_semantics_test::VectorWithMoveSem& vec_a)"
+    >>> test_proto = "double & *  ::move_semantics_test::VectorWithoutMoveSem::computeSum("
+    >>> test_proto += "const move_semantics_test::VectorWithMoveSem& vec_a)"
     >>> split_function_prototype(test_proto)
     ('double & *  ', 'move_semantics_test', 'VectorWithoutMoveSem', 'computeSum', 'const move_semantics_test::VectorWithMoveSem& vec_a')
     """
-    r_type, namespace, class_name, func_name = [None] * 4
-    param_extrtor_pattern = r"^(.*)\s*\((.*)\)"
-    param_extrtor_po = re.compile(param_extrtor_pattern)
+    r_type, namespace, class_name, func_name = [''] * 4
+    param_extractor_pattern = r"^(.*)\s*\((.*)\)"
+    param_extractor_po = re.compile(param_extractor_pattern)
     left_part_splitter_pattern = r"^\s*(\w+\s*[\*\s*&]*)?\s*(.*)"
     left_part_splitter_po = re.compile(left_part_splitter_pattern)
-    left_part, parameters = re.search(param_extrtor_po, func_prototype).groups()
+    left_part, parameters = re.search(param_extractor_po, func_prototype).groups()
     r_type, all_names = re.search(left_part_splitter_po, left_part).groups()
     all_names = all_names.lstrip(":")
     try:
-        namespace, class_name, func_name = all_names.split("::")
+        namespace, class_name, func_name = [s.strip() for s in all_names.split("::")]
     except ValueError:
         try:
-            class_name, func_name = all_names.split("::")
+            class_name, func_name = [s.strip() for s in all_names.split("::")]
         except ValueError:
-            func_name = all_names
-    # func_proto_pattern = "^\s*(\w+\s*\**)\s*(\w+)\s*\((.*)\)"
-    # func_proto_po = re.compile(func_proto_pattern)
-    # results = re.search(func_proto_po, func_prototype).groups()
-    return r_type, namespace, class_name, func_name, parameters
+            func_name = all_names.strip()
+    return r_type.strip(), namespace, class_name, func_name, parameters
 
 
 def get_function_parameters_names(func_parameters):
