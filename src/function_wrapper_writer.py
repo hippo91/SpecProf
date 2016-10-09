@@ -54,7 +54,7 @@ class FunctionWrapperWriter(object):
             self._src_filename = os.path.splitext(os.path.basename(self._target_library))[0] + "_wrapper.cpp"
         self._src_file_path = os.path.join(self._path_to_working_dir, self._src_filename)
 
-    def write_src_file(self, function_symbol, function_signature, opt_includes=None):
+    def write_src_file(self, function_symbol, function_signature, namespace=None, opt_includes=None):
         """
         Write c file wrapper using jinja and template
         
@@ -69,17 +69,22 @@ class FunctionWrapperWriter(object):
             template = JINJA_ENVIRONMENT.get_template('template_cfile.c')
         elif self._language in ['c++', 'cpp']:
             template = JINJA_ENVIRONMENT.get_template('template_cppfile.cpp')
-        r_type, namespace, class_name, func_name, func_params = split_function_prototype(function_signature)
-        func_full_decl = "::".join([namespace, class_name])
+        r_type, class_name, func_name, func_params = split_function_prototype(function_signature)
+        #if namespace is not None:
+        #    func_full_decl = "::".join([namespace, class_name])
+        #    function_signature = "::".join([r_type, namespace, function_signature.split(r_type)[1]])
+        #else:
+        func_full_decl = class_name
+        if not func_full_decl.endswith("::"):
+            func_full_decl += "::"
         if func_full_decl == "::":
             func_full_decl = ""
-        else:
-            func_full_decl += "::"
         template_values = {'opt_includes': opt_includes,
                            'func_signature': function_signature,
                            'target_library': self._target_library,
                            'target_symbol': function_symbol,
                            'return_type': r_type,
+                           'namespace': namespace,
                            'func_name': func_name,
                            'class_name': class_name,
                            'func_full_decl': func_full_decl,
@@ -135,14 +140,13 @@ def split_function_prototype(func_prototype):
     """
     Return a tuple made of the :
         - return type of the function,
-        - namespace,
         - class name,
         - name of the function,
         - parameters list of the function
 
     :param func_prototype: prototype of the function
     :type func_prototype: str
-    :return: a tuple containing the return type, the namespace, the class name,  the name of the function
+    :return: a tuple containing the return type, the class name,  the name of the function
      and the parameters list of the function
     :rtype: tuple
 
@@ -151,12 +155,12 @@ def split_function_prototype(func_prototype):
     >>> split_function_prototype(test_proto) #doctest:+NORMALIZE_WHITESPACE
     ('void ', '', '', 'testWithoutMoveCtor',
     'const move_semantics_test::VectorWithMoveSem& vec_a,const move_semantics_test::VectorWithMoveSem& vec_b')
-    >>> test_proto = "double & *  ::move_semantics_test::VectorWithoutMoveSem::computeSum("
+    >>> test_proto = "double & *  VectorWithoutMoveSem::computeSum("
     >>> test_proto += "const move_semantics_test::VectorWithMoveSem& vec_a)"
     >>> split_function_prototype(test_proto)
-    ('double & *  ', 'move_semantics_test', 'VectorWithoutMoveSem', 'computeSum', 'const move_semantics_test::VectorWithMoveSem& vec_a')
+    ('double & *  ', 'VectorWithoutMoveSem', 'computeSum', 'const move_semantics_test::VectorWithMoveSem& vec_a')
     """
-    r_type, namespace, class_name, func_name = [''] * 4
+    r_type, class_name, func_name = [''] * 3
     param_extractor_pattern = r"^(.*)\s*\((.*)\)"
     param_extractor_po = re.compile(param_extractor_pattern)
     left_part_splitter_pattern = r"^\s*(\w+\s*[\*\s*&]*)?\s*(.*)"
@@ -165,13 +169,10 @@ def split_function_prototype(func_prototype):
     r_type, all_names = re.search(left_part_splitter_po, left_part).groups()
     all_names = all_names.lstrip(":")
     try:
-        namespace, class_name, func_name = [s.strip() for s in all_names.split("::")]
+        class_name, func_name = [s.strip() for s in all_names.split("::")]
     except ValueError:
-        try:
-            class_name, func_name = [s.strip() for s in all_names.split("::")]
-        except ValueError:
-            func_name = all_names.strip()
-    return r_type.strip(), namespace, class_name, func_name, parameters
+        func_name = all_names.strip()
+    return r_type.strip(), class_name, func_name, parameters
 
 
 def get_function_parameters_names(func_parameters):
