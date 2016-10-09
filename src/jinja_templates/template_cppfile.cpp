@@ -21,6 +21,11 @@
 {% endfor %}
 {% endif %}
 
+{% if namespace is not none %}
+using namespace {{ namespace }};
+{% endif %}
+
+
 // --------------------------------------------------------------
 // -- GLOBAL VARIABLES
 // --------------------------------------------------------------
@@ -77,6 +82,9 @@ void __attribute__((constructor)) setup()
 }
 
 // Function prototype
+{% if namespace is not none %}
+namespace {{ namespace }} {
+{% endif %}
 {{ func_signature|safe }}
 {
     std::chrono::system_clock::time_point start, end;
@@ -104,7 +112,9 @@ void __attribute__((constructor)) setup()
     return ret_val;
     {% endif %}
 }
-
+{% if namespace is not none %}
+}
+{% endif %}
 
 //Library finalizer
 void __attribute__((destructor)) finalize()
