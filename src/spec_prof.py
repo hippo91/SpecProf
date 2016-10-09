@@ -144,6 +144,8 @@ USAGE
                             required=True)
         parser.add_argument('-s', '--signature', dest="signature", metavar="FUNCTION_SIGNATURE",
                             help="signature of the function to measure", required=True)
+        parser.add_argument('-n', '--namespace', dest='namespace', metavar="NAMESPACE",
+                            help="namespace the function belongs to")
         parser.add_argument('-w', '--path-to-working-dir', dest="wdir", metavar="PATH_TO_WORKING_DIR",
                             help="path to a directory where source file and shared object will be generated",
                             required=True)
@@ -154,6 +156,9 @@ USAGE
 
         origin_library = os.path.abspath(os.path.expanduser(args.origin_library))
         function_signature = args.signature.rstrip().rstrip(';')
+        namespace = args.namespace
+        if namespace:
+            namespace = namespace.strip()
         working_dir = args.wdir
         optional_includes = None
         if args.opt_inc:
@@ -166,10 +171,14 @@ USAGE
                 optional_includes = [os.path.abspath(os.path.expanduser(x)) for x in args.opt_inc]
 
         adapter.info("Analysing the function prototype...")
-        r_type, namespace, class_name, function_name, params =\
+        r_type, class_name, function_name, params =\
             function_wrapper_writer.split_function_prototype(function_signature)
         adapter.info("... done.")
+        if namespace:
+            adapter.info("|_> Namespace is : {:s}".format(namespace))
         adapter.info("|_> Return type is : {:s}".format(r_type))
+        if class_name:
+            adapter.info("|_> Class name is : {:s}".format(class_name))
         adapter.info("|_> Function name is : {:s}".format(function_name))
         adapter.info("|_> Parameters are : {:s}".format(params))
         adapter.info("Analysing the shared library...")
@@ -179,7 +188,10 @@ USAGE
         adapter.info("Generating source file...")
         wrapper_writer = function_wrapper_writer.FunctionWrapperWriter(origin_library, working_dir,
                                                                        language=_so_analyser.language)
-        wrapper_writer.write_src_file(target_symbol, function_signature, optional_includes)
+        if namespace:
+            wrapper_writer.write_src_file(target_symbol, function_signature, namespace, optional_includes)
+        else:
+            wrapper_writer.write_src_file(target_symbol, function_signature, optional_includes)
         adapter.info("...done.")
         adapter.info("Compiling source file...")
         wrapper_writer.compile_src_file()
