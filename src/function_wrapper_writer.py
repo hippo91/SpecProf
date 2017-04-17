@@ -70,10 +70,6 @@ class FunctionWrapperWriter(object):
         elif self._language in ['c++', 'cpp']:
             template = JINJA_ENVIRONMENT.get_template('template_cppfile.cpp')
         r_type, class_name, func_name, func_params = split_function_prototype(function_signature)
-        #if namespace is not None:
-        #    func_full_decl = "::".join([namespace, class_name])
-        #    function_signature = "::".join([r_type, namespace, function_signature.split(r_type)[1]])
-        #else:
         func_full_decl = class_name
         if not func_full_decl.endswith("::"):
             func_full_decl += "::"
