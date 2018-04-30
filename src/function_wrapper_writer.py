@@ -135,40 +135,30 @@ class FunctionWrapperWriter(object):
 def split_function_prototype(func_prototype):
     """
     Return a tuple made of the :
-        - return type of the function,
+        - namespace of the function,
         - class name,
         - name of the function,
         - parameters list of the function
 
     :param func_prototype: prototype of the function
     :type func_prototype: str
-    :return: a tuple containing the return type, the class name,  the name of the function
+    :return: a tuple containing the namespace, the class name, the name of the function
      and the parameters list of the function
     :rtype: tuple
-
-    >>> test_proto = "void testWithoutMoveCtor(const move_semantics_test::VectorWithMoveSem& vec_a"
-    >>> test_proto += ",const move_semantics_test::VectorWithMoveSem& vec_b)"
-    >>> split_function_prototype(test_proto) #doctest:+NORMALIZE_WHITESPACE
-    ('void ', '', '', 'testWithoutMoveCtor',
-    'const move_semantics_test::VectorWithMoveSem& vec_a,const move_semantics_test::VectorWithMoveSem& vec_b')
-    >>> test_proto = "double & *  VectorWithoutMoveSem::computeSum("
-    >>> test_proto += "const move_semantics_test::VectorWithMoveSem& vec_a)"
-    >>> split_function_prototype(test_proto)
-    ('double & *  ', 'VectorWithoutMoveSem', 'computeSum', 'const move_semantics_test::VectorWithMoveSem& vec_a')
     """
-    r_type, class_name, func_name = [''] * 3
+    namespace, class_name, func_name = [''] * 3
     param_extractor_pattern = r"^(.*)\s*\((.*)\)"
     param_extractor_po = re.compile(param_extractor_pattern)
     left_part_splitter_pattern = r"^\s*(\w+\s*[\*\s*&]*)?\s*(.*)"
     left_part_splitter_po = re.compile(left_part_splitter_pattern)
     left_part, parameters = re.search(param_extractor_po, func_prototype).groups()
-    r_type, all_names = re.search(left_part_splitter_po, left_part).groups()
+    namespace, all_names = re.search(left_part_splitter_po, left_part).groups()
     all_names = all_names.lstrip(":")
     try:
         class_name, func_name = [s.strip() for s in all_names.split("::")]
     except ValueError:
         func_name = all_names.strip()
-    return r_type.strip(), class_name, func_name, parameters
+    return namespace.strip(), class_name, func_name, parameters
 
 
 def get_function_parameters_names(func_parameters):
