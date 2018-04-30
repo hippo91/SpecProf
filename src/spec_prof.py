@@ -142,10 +142,6 @@ USAGE
         parser.add_argument('-V', '--version', action='version', version=program_version_message)
         parser.add_argument('-o', '--origin_library', dest="origin_library", help="path to origin library",
                             required=True)
-        parser.add_argument('-s', '--signature', dest="signature", metavar="FUNCTION_SIGNATURE",
-                            help="signature of the function to measure", required=True)
-        parser.add_argument('-n', '--namespace', dest='namespace', metavar="NAMESPACE",
-                            help="namespace the function belongs to")
         parser.add_argument('-w', '--path-to-working-dir', dest="wdir", metavar="PATH_TO_WORKING_DIR",
                             help="path to a directory where source file and shared object will be generated",
                             required=True)
@@ -155,10 +151,6 @@ USAGE
         args = parser.parse_args()
 
         origin_library = os.path.abspath(os.path.expanduser(args.origin_library))
-        function_signature = args.signature.rstrip().rstrip(';')
-        namespace = args.namespace
-        if namespace:
-            namespace = namespace.strip()
         working_dir = args.wdir
         optional_includes = None
         if args.opt_inc:
@@ -170,28 +162,29 @@ USAGE
                 # Try with a list of optional includes
                 optional_includes = [os.path.abspath(os.path.expanduser(x)) for x in args.opt_inc]
 
+        adapter.info("Analysing the shared library...")
+        _so_analyser = shared_library_analysis.SharedObjectAnalyser(origin_library)
+        f_symbol, f_signature, f_rtype = _so_analyser.ask_for_symbol()
         adapter.info("Analysing the function prototype...")
+        import ipdb; ipdb.set_trace()
         r_type, class_name, function_name, params =\
-            function_wrapper_writer.split_function_prototype(function_signature)
+            function_wrapper_writer.split_function_prototype(f_signature)
         adapter.info("... done.")
         if namespace:
             adapter.info("|_> Namespace is : {:s}".format(namespace))
-        adapter.info("|_> Return type is : {:s}".format(r_type))
+        adapter.info("|_> Return type is : {:s}".format(f_rtype))
         if class_name:
             adapter.info("|_> Class name is : {:s}".format(class_name))
         adapter.info("|_> Function name is : {:s}".format(function_name))
         adapter.info("|_> Parameters are : {:s}".format(params))
-        adapter.info("Analysing the shared library...")
-        _so_analyser =  shared_library_analysis.SharedObjectAnalyser(origin_library)
-        target_symbol = _so_analyser.ask_for_symbol(function_name)
         adapter.info("... done.")
         adapter.info("Generating source file...")
-        wrapper_writer = function_wrapper_writer.FunctionWrapperWriter(origin_library, working_dir,
-                                                                       language=_so_analyser.language)
+        wrapper_writer = function_wrapper_writer.FunctionWrapperWriter(
+            origin_library, working_dir, language=_so_analyser.language)
         if namespace:
-            wrapper_writer.write_src_file(target_symbol, function_signature, namespace, optional_includes)
+            wrapper_writer.write_src_file(f_symbol, f_signature, namespace, optional_includes)
         else:
-            wrapper_writer.write_src_file(target_symbol, function_signature, optional_includes)
+            wrapper_writer.write_src_file(f_symbol, f_signature, optional_includes)
         adapter.info("...done.")
         adapter.info("Compiling source file...")
         wrapper_writer.compile_src_file()
