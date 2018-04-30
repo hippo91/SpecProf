@@ -5,7 +5,7 @@
 # Choice of compilator (g++ by default)
 CC=$(CPL)
 ifeq ($(CC),)
-CC=gcc
+CC=g++
 endif
 
 # Want to compile with debug symbols?
